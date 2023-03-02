@@ -41,7 +41,6 @@ struct FixerResponse {
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
     if Cli::parse().amnt == 0 {
-        // let helpval = Cli::parse().hlp.unwrap();
         let url = "https://api.apilayer.com/fixer/symbols";
         let client = reqwest::Client::new();
         let res = client
@@ -55,21 +54,6 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
         println!("{:#?}", sym);
         Ok::<(), ()>(()).expect("ERROR");
     }
-    // if Cli::parse().hlp.is_some() {
-    //     // let helpval = Cli::parse().hlp.unwrap();
-    //     let url = "https://api.apilayer.com/fixer/symbols";
-    //     let client = reqwest::Client::new();
-    //     let res = client
-    //         .get(url)
-    //         .header("apikey", "xptI7I3A2fLNbX4RyEIs6ZMxKo52cn1X")
-    //         .send()
-    //         .await?
-    //         .json::<help>()
-    //         .await?;
-    //     let sym = res.symbols;
-    //     println!("{:#?}", sym);
-    //     Ok::<(), ()>(()).expect("ERROR");
-    // }
     if Cli::parse().amnt > 0 {
         let amnt = Cli::parse().amnt;
         let origin = Cli::parse().origin.unwrap();
@@ -84,11 +68,14 @@ async fn main() -> Result<(), Box<dyn std::error::Error>> {
             .await?
             .json::<FixerResponse>()
             .await?;
-        let converted = res.result.round();
+        let converted = res.result;
+        let rounded = format!("{:.2}", converted);
         sp.stop();
+        print!(" {}", "\u{2713}".green());
         // println!("\n{amnt} {origin} = {} {fin}", converted);
-        println!("\n\n{:^32} {:^32}\n", converted.to_string().green(), fin.to_string().green());
-        println!("{} {}", "Converted from".truecolor(219, 219, 219).underline(), fin.to_string().truecolor(219, 219, 219).underline());
+        let matted = format!("{} {}", rounded.to_string().green(), fin.to_string().green()).to_string();
+        println!("\n\n{}\n", matted);
+        println!("{} {} {}", "Converted".truecolor(219, 219, 219).underline(), "from".truecolor(219, 219, 219).underline(), fin.to_string().truecolor(219, 219, 219).underline());
         Ok(())
     }
     else {
