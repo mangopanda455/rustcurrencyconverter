@@ -1,13 +1,18 @@
 use reqwest::{header::USER_AGENT, Client};
 use serde::Deserialize;
+use std::any::Any;
 use std::collections::HashMap;
 use clap::Parser;
-
+use colored::*;
+use spinners::{Spinner, Spinners};
+use std::thread::sleep;
+use std::time::Duration;
 #[derive(Parser)]
 struct Cli {
     amnt: u32,
-    origin: String,
-    fin: String,
+    origin: Option<String>,
+    fin: Option<String>,
+    hlp: Option<String>,
 }
 #[derive(Debug, Deserialize)]
 struct quer {
@@ -33,35 +38,61 @@ struct FixerResponse {
     date: String,
     result: f64,
 }
-
-
 #[tokio::main]
 async fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let amnt = Cli::parse().amnt;
-    let origin = Cli::parse().origin;
-    let fin = Cli::parse().fin;
-    let url = format!("https://api.apilayer.com/fixer/convert?from={}&to={}&amount={}", origin, fin, amnt);
-    let client = reqwest::Client::new();
-    if origin == "help" {
+    if Cli::parse().amnt == 0 {
+        // let helpval = Cli::parse().hlp.unwrap();
+        let url = "https://api.apilayer.com/fixer/symbols";
+        let client = reqwest::Client::new();
         let res = client
-            .get("https://api.apilayer.com/fixer/symbols")
+            .get(url)
             .header("apikey", "xptI7I3A2fLNbX4RyEIs6ZMxKo52cn1X")
             .send()
             .await?
             .json::<help>()
             .await?;
-        println!("{:#?}", res.symbols);
+        let sym = res.symbols;
+        println!("{:#?}", sym);
+        Ok::<(), ()>(()).expect("ERROR");
     }
-    let res = client
-        .get(&url)
-        .header("apikey", "xptI7I3A2fLNbX4RyEIs6ZMxKo52cn1X")
-        .send()
-        .await?
-        .json::<FixerResponse>()
-        .await?;
-
-    let converted = res.result;
-    println!("{}", converted);
-    Ok(())
+    // if Cli::parse().hlp.is_some() {
+    //     // let helpval = Cli::parse().hlp.unwrap();
+    //     let url = "https://api.apilayer.com/fixer/symbols";
+    //     let client = reqwest::Client::new();
+    //     let res = client
+    //         .get(url)
+    //         .header("apikey", "xptI7I3A2fLNbX4RyEIs6ZMxKo52cn1X")
+    //         .send()
+    //         .await?
+    //         .json::<help>()
+    //         .await?;
+    //     let sym = res.symbols;
+    //     println!("{:#?}", sym);
+    //     Ok::<(), ()>(()).expect("ERROR");
+    // }
+    if Cli::parse().amnt > 0 {
+        let amnt = Cli::parse().amnt;
+        let origin = Cli::parse().origin.unwrap();
+        let fin = Cli::parse().fin.unwrap();
+        let mut sp = Spinner::new(Spinners::Dots9, "Working!".red().to_string().into());
+        let url = format!("https://api.apilayer.com/fixer/convert?from={}&to={}&amount={}", origin, fin, amnt);
+        let client = reqwest::Client::new(); 
+        let res = client
+            .get(&url)
+            .header("apikey", "xptI7I3A2fLNbX4RyEIs6ZMxKo52cn1X")
+            .send()
+            .await?
+            .json::<FixerResponse>()
+            .await?;
+        let converted = res.result.round();
+        sp.stop();
+        // println!("\n{amnt} {origin} = {} {fin}", converted);
+        println!("\n\n{:^32} {:^32}\n", converted.to_string().green(), fin.to_string().green());
+        println!("{} {}", "Converted from".truecolor(219, 219, 219).underline(), fin.to_string().truecolor(219, 219, 219).underline());
+        Ok(())
+    }
+    else {
+        Ok(())
+    }
 }
 
